@@ -1,5 +1,6 @@
 import datetime
 import itertools
+import struct
 
 class Packet:
 
@@ -8,7 +9,7 @@ class Packet:
     def __init__(self, data, isReliable):
         self.id = next(Packet.id_object)
         self.data = data
-        self.isReliable = isReliable
+        self.channelType = 1 if isReliable else 0
         self.timeStamp = datetime.datetime.now()
         pass
 
@@ -18,9 +19,12 @@ class Packet:
     def getData(self): # Get the data of the packet
         return self.data
     
-    def getReliability(self): # Get the reliability status of the packet
-        return self.isReliable
+    def getChannel(self): # Get the stream at which the packet has been sent to
+        return self.channelType
     
     def getTimeStamp(self): # Get the time stamp at which the packet was created
         return self.timeStamp
+    
+    def convertToBytes(self): # Convert to bytes to be suitable for sending across aioquic
+        header = struct.pack('!B I Q', self.isRel)
 
