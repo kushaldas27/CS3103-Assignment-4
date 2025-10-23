@@ -4,7 +4,7 @@ from aioquic.asyncio.protocol import QuicConnectionProtocol
 from aioquic.quic.configuration import QuicConfiguration
 
 
-class GameNetServerProtocol(QuicConnectionProtocol):
+class GameNetReceiverProtocol(QuicConnectionProtocol):
     def quic_event_received(self, event: events.QuicEvent):
         if isinstance(event, events.StreamDataReceived):
             print(f"Server received on stream {event.stream_id}: {event.data}")
@@ -17,7 +17,7 @@ class GameNetServerProtocol(QuicConnectionProtocol):
             self.transmit()
 
 
-class GameNetServer:
+class GameNetReceiver:
     def __init__(self, recv_ip: str, recv_port: int, certfile: str = "cert.pem", keyfile: str = "key.pem"):
         self.recv_ip = recv_ip
         self.recv_port = recv_port
@@ -29,7 +29,7 @@ class GameNetServer:
             raise RuntimeError("Server TLS cert/key not found or invalid: place cert.pem and key.pem in the project directory")
 
         # protocol used to handle incoming events
-        self.protocol = GameNetServerProtocol
+        self.protocol = GameNetReceiverProtocol
 
         self.server = None
 

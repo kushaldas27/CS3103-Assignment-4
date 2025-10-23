@@ -1,5 +1,5 @@
 import random
-from packet import Packet
+from Packet import Packet
 
 def main():
 

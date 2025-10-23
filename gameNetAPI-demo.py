@@ -1,6 +1,6 @@
 import asyncio
 
-from GameNetAPI.GameNetClientAPI import GameNetClient
+from GameNetAPI.GameNetAPI import GameNetClient
 
 
 async def main():

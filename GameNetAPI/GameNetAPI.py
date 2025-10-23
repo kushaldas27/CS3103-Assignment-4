@@ -6,13 +6,13 @@ from aioquic.asyncio.protocol import QuicConnectionProtocol
 from aioquic.quic.configuration import QuicConfiguration
 
 
-class GameNetClientProtocol(QuicConnectionProtocol):
+class GameNetAPIProtocol(QuicConnectionProtocol):
     def quic_event_received(self, event: events.QuicEvent):
         if isinstance(event, events.StreamDataReceived):
             print(f"Client received on stream {event.stream_id}: {event.data}")
 
 
-class GameNetClient:
+class GameNetAPI:
     def __init__(self, target_ip: str, target_port: int):
         self.target_ip = target_ip
         self.target_port = target_port
@@ -31,7 +31,7 @@ class GameNetClient:
 
     async def setup(self):
         self.context = quic_asyncio.client.connect(
-            host=self.target_ip, port=self.target_port, configuration=self.config, create_protocol=GameNetClientProtocol
+            host=self.target_ip, port=self.target_port, configuration=self.config, create_protocol=GameNetAPIProtocol
         )
         self.protocol = await self.context.__aenter__()
         self.reliable_stream = self.protocol._quic.get_next_available_stream_id()

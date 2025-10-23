@@ -1,10 +1,10 @@
 import asyncio
 
-from GameNetAPI.GameNetServerAPI import GameNetServer
+from GameNetAPI.GameNetReceiver import GameNetReceiver
 
 
 async def main():
-    server = GameNetServer("127.0.0.1", 1234)
+    server = GameNetReceiver("127.0.0.1", 1234)
     await server.setup()
 
     # keep the server running until manually stopped
