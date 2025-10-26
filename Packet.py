@@ -7,13 +7,15 @@ class Packet:
     id_object = itertools.count()
     
     def __init__(self, data, isReliable):
-        self.id = next(Packet.id_object)
+
+        #### Headers of packet ####
+        self.id = next(Packet.id_object) # Auto increment seq no of the packet
         self.data = data
         self.channelType = 1 if isReliable else 0
         self.timeStamp = datetime.datetime.now()
         pass
 
-    def getPacketId(self): # Get the id of the packet
+    def getPacketId(self): # Get the seq no of the packet
         return self.id
 
     def getData(self): # Get the data of the packet
@@ -26,5 +28,5 @@ class Packet:
         return self.timeStamp
     
     def convertToBytes(self): # Convert to bytes to be suitable for sending across aioquic
-        header = struct.pack('!B I Q', self.isRel)
+        header = struct.pack('!B I Q', self.isReliable, self.id, self.channelType)
 
