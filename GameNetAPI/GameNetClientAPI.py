@@ -11,9 +11,13 @@ class GameNetClientProtocol(QuicConnectionProtocol):
         if isinstance(event, events.StreamDataReceived):
             print(f"Client received on stream {event.stream_id}: {event.data}")
 
+    #TODO deparse Packet Class 
+
 
 class GameNetClient:
     def __init__(self, target_ip: str, target_port: int):
+
+        #### CONFIGURATION FOR QUIC API ####
         self.target_ip = target_ip
         self.target_port = target_port
         self.config = QuicConfiguration(is_client=True)
@@ -63,3 +67,6 @@ class GameNetClient:
 
     def ping(self):
         self.send_data(self.reliable_stream, b"PING")
+
+
+    #TODO Set up randomizer

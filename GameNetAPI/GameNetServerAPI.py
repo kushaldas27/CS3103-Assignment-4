@@ -5,10 +5,17 @@ from aioquic.quic.configuration import QuicConfiguration
 
 
 class GameNetServerProtocol(QuicConnectionProtocol):
-    def quic_event_received(self, event: events.QuicEvent):
+    def quic_event_received(self, event: events.QuicEvent): # Action to take upon receiving events
         if isinstance(event, events.StreamDataReceived):
             print(f"Server received on stream {event.stream_id}: {event.data}")
-            if event.data == b"PING":
+
+            #TODO deparse Packet Class 
+            #TODO add logging (eg count latency eg)
+
+            if event.data == b"PING": # Retransmission 
+                
+                #TODO Set retransmission
+
                 self._quic.send_stream_data(event.stream_id, b"PONG", end_stream=False)
             else:
                 # TODO: change content of ACK according to application logic, like application sequence numbers
@@ -16,11 +23,12 @@ class GameNetServerProtocol(QuicConnectionProtocol):
 
             self.transmit()
 
+    
 
 class GameNetServer:
     def __init__(self, recv_ip: str, recv_port: int, certfile: str = "cert.pem", keyfile: str = "key.pem"):
-        self.recv_ip = recv_ip
-        self.recv_port = recv_port
+        self.recv_ip = recv_ip # Initialize ip 
+        self.recv_port = recv_port # Initialize port
         self.config = QuicConfiguration(is_client=False)
         # The server must load a certificate and private key for QUIC/TLS to work.
         try:
