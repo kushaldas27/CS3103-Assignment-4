@@ -10,7 +10,10 @@ class GameNetServerProtocol(QuicConnectionProtocol):
             print(f"Server received on stream {event.stream_id}: {event.data}")
 
             #TODO deparse Packet Class 
+            self.analyzePacket()
+            
             #TODO add logging (eg count latency eg)
+            self.logPackets()
 
             if event.data == b"PING": # Retransmission 
                 
@@ -18,11 +21,19 @@ class GameNetServerProtocol(QuicConnectionProtocol):
 
                 self._quic.send_stream_data(event.stream_id, b"PONG", end_stream=False)
             else:
+
                 # TODO: change content of ACK according to application logic, like application sequence numbers
+
                 self._quic.send_stream_data(event.stream_id, b"ACK", end_stream=False)
 
             self.transmit()
 
+    def analyzePacket():
+        return
+    
+
+    def logPackets():
+        return
     
 
 class GameNetServer:

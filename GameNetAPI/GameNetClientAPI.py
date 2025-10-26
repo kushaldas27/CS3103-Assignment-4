@@ -7,6 +7,8 @@ from aioquic.quic.configuration import QuicConfiguration
 
 
 class GameNetClientProtocol(QuicConnectionProtocol):
+    
+    # Retransmission from server
     def quic_event_received(self, event: events.QuicEvent):
         if isinstance(event, events.StreamDataReceived):
             print(f"Client received on stream {event.stream_id}: {event.data}")
@@ -62,8 +64,11 @@ class GameNetClient:
         if stream_id is None:
             raise RuntimeError("stream ID is None")
 
+        # Reliable stream
         self.protocol._quic.send_stream_data(stream_id, data, end_stream=False)
         self.protocol.transmit()
+
+        #TODO unreliable stream
 
     def ping(self):
         self.send_data(self.reliable_stream, b"PING")
