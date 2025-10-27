@@ -1,3 +1,4 @@
+import pickle
 import aioquic.asyncio as quic_asyncio
 import aioquic.quic.events as events
 from aioquic.asyncio.protocol import QuicConnectionProtocol
@@ -7,10 +8,11 @@ from aioquic.quic.configuration import QuicConfiguration
 class GameNetServerProtocol(QuicConnectionProtocol):
     def quic_event_received(self, event: events.QuicEvent): # Action to take upon receiving events
         if isinstance(event, events.StreamDataReceived):
-            print(f"Server received on stream {event.stream_id}: {event.data}")
+            
+            # Deparse Packet Class 
+            packet = self.analyzePacket(event.data)
 
-            #TODO deparse Packet Class 
-            self.analyzePacket()
+            print(f"Server received on stream {event.stream_id}: {packet.getData()}")
             
             #TODO add logging (eg count latency eg)
             self.logPackets()
@@ -28,11 +30,12 @@ class GameNetServerProtocol(QuicConnectionProtocol):
 
             self.transmit()
 
-    def analyzePacket():
-        return
+    def analyzePacket(self, packet_bytes):
+        packet_object = pickle.loads(packet_bytes)
+        return packet_object
     
 
-    def logPackets():
+    def logPackets(self):
         return
     
 
