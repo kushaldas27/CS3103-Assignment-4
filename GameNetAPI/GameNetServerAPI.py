@@ -12,15 +12,11 @@ class GameNetServerProtocol(QuicConnectionProtocol):
             # Deparse Packet Class 
             packet = self.analyzePacket(event.data)
 
-            print(f"Server received on stream {event.stream_id}: {packet.getData()}")
+            print(f"Server received on RELIABLE stream {event.stream_id}: {packet.getData()}")
             
-            #TODO add logging (eg count latency eg)
-            self.logPackets()
 
             if event.data == b"PING": # Retransmission 
                 
-                #TODO Set retransmission
-
                 self._quic.send_stream_data(event.stream_id, b"PONG", end_stream=False)
             else:
 
@@ -30,11 +26,27 @@ class GameNetServerProtocol(QuicConnectionProtocol):
 
             self.transmit()
 
+        elif isinstance(event, events.DatagramFrameReceived):
+
+            try:
+                # Deparse Packet Class 
+                packet = self.analyzePacket(event.data)
+
+                print(f"Server received on UNRELIABLE stream : {packet.getData()}")
+                if event.data == b"PING": # Retransmission 
+                    self._quic.send_datagram_frame(b"PONG")
+                else:
+                    self._quic.send_stream_data(b"ACK")
+
+                self.transmit()
+            except:
+                print("Packet is corrupted!")
+
     def analyzePacket(self, packet_bytes):
         packet_object = pickle.loads(packet_bytes)
         return packet_object
     
-
+    # Implement logging here
     def logPackets(self):
         return
     
@@ -44,6 +56,10 @@ class GameNetServer:
         self.recv_ip = recv_ip # Initialize ip 
         self.recv_port = recv_port # Initialize port
         self.config = QuicConfiguration(is_client=False)
+
+        # Allow datagrams to be sent
+        self.config.max_datagram_frame_size = 1200
+
         # The server must load a certificate and private key for QUIC/TLS to work.
         try:
             self.config.load_cert_chain(certfile, keyfile)
@@ -62,4 +78,3 @@ class GameNetServer:
         )
         print("Server: started")
 
-    # TODO: Implement a shutdown method to gracefully stop the server when needed
