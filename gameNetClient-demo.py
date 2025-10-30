@@ -3,18 +3,15 @@ import asyncio
 from GameNetAPI.GameNetClientAPI import GameNetClient
 
 async def main():
-    client = GameNetClient("127.0.0.1", 1234)
+    client = GameNetClient("10.0.0.1", 4444)
     await client.setup()
 
     #TODO execute client.run() 
     #Upon running, client will randomize stream id and sent random data which will be encapsulated in Packet Class
 
-    while True:
-        client.run()
-        await asyncio.sleep(1)  # wait 1 second or else it will overwhelm the server
-
-        # client.send_data(client.reliable_stream, b"This is a reliable message")
-        # await asyncio.sleep(1)
-
+    client.run()
+    # while True:
+    #     client.run()
+    #     await asyncio.sleep(1)  # wait 1 second or else it will overwhelm the server
 
 asyncio.run(main())
