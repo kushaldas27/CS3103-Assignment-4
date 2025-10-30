@@ -26,7 +26,3 @@ class Packet:
     
     def getTimeStamp(self): # Get the time stamp at which the packet was created
         return self.timeStamp
-    
-    def convertToBytes(self): # Convert to bytes to be suitable for sending across aioquic
-        header = struct.pack('!B I Q', self.isReliable, self.id, self.channelType)
-

@@ -1,5 +1,8 @@
 import ssl
 
+import random
+import pickle
+from Packet import Packet
 import aioquic.asyncio as quic_asyncio
 import aioquic.quic.events as events
 from aioquic.asyncio.protocol import QuicConnectionProtocol
@@ -68,10 +71,31 @@ class GameNetClient:
         self.protocol._quic.send_stream_data(stream_id, data, end_stream=False)
         self.protocol.transmit()
 
-        #TODO unreliable stream
+        # Unreliable stream
+        # self.protocol._quic.send_datagram_frames(data)
+        # self.protocol.transmit()
 
     def ping(self):
         self.send_data(self.reliable_stream, b"PING")
 
 
-    #TODO Set up randomizer
+    def constructPacket(self, data, isReliable):
+        packet = Packet(data, isReliable)
+        packet_bytes = pickle.dumps(packet)
+        return packet_bytes
+
+
+    def run(self):
+
+        # Randomizer to determine between 0 (Unreliable) and 1 (Reliable)
+        isReliable = random.randint(0,1) 
+
+        data = "This is a test message"
+
+        for i in range(10):
+            packet = self.constructPacket(data, isReliable)
+            self.send_data(self.reliable_stream, packet)
+
+        return
+            
+
