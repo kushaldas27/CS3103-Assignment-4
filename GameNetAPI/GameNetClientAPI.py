@@ -1,7 +1,7 @@
 import ssl
-
 import random
 import pickle
+import time
 from Packet import Packet
 import aioquic.asyncio as quic_asyncio
 import aioquic.quic.events as events
@@ -34,7 +34,6 @@ class GameNetClient:
         self.config.verify_mode = ssl.CERT_NONE
 
         self.reliable_stream = None
-        self.unreliable_stream = None
         self.context = None  # need to manage context manually so that the 2 streams above can be used anywhere
         self.protocol = None  # this is established when client manages to connect to server
 
@@ -44,7 +43,6 @@ class GameNetClient:
         )
         self.protocol = await self.context.__aenter__()
         self.reliable_stream = self.protocol._quic.get_next_available_stream_id()
-        self.unreliable_stream = self.protocol._quic.get_next_available_stream_id()
 
     async def teardown(self):
         if self.context is not None:
@@ -52,49 +50,47 @@ class GameNetClient:
             self.context = None
             self.protocol = None
             self.reliable_stream = None
-            self.unreliable_stream = None
 
-    def send_data(self, stream_id: int | None, data: bytes):
+    def send_data(self, packet: Packet):
         if self.context is None:
             raise RuntimeError("connection not established; call setup() first")
 
         if self.protocol is None:
             raise RuntimeError("protocol not established; call setup() first")
 
-        if stream_id not in [self.reliable_stream, self.unreliable_stream]:
-            raise RuntimeError("invalid stream ID")
+        #if stream_id not in [self.reliable_stream]:
+        #    raise RuntimeError("invalid stream ID")
 
-        if stream_id is None:
-            raise RuntimeError("stream ID is None")
-
-        # Reliable stream
-        self.protocol._quic.send_stream_data(stream_id, data, end_stream=False)
-        self.protocol.transmit()
-
-        # Unreliable stream
-        # self.protocol._quic.send_datagram_frames(data)
-        # self.protocol.transmit()
-
-    def ping(self):
-        self.send_data(self.reliable_stream, b"PING")
+        #if stream_id is None:
+        #    raise RuntimeError("stream ID is None")
+        packet_bytes = packet.serialize() if packet.isReliable else pickle.dumps(packet)
+        if packet.isReliable:
+            self.protocol._quic.send_stream_data(self.reliable_stream, packet_bytes, end_stream=False)
+            self.protocol.transmit()
+        else:
+            self.protocol._quic.send_datagram_frame(packet_bytes)
+            self.protocol.transmit()
 
 
     def constructPacket(self, data, isReliable):
         packet = Packet(data, isReliable)
-        packet_bytes = pickle.dumps(packet)
-        return packet_bytes
-
+        return packet
+    
+    def ping(self):
+        ping_packet = self.constructPacket("PING", True)
+        self.send_data(self.reliable_stream, ping_packet)
 
     def run(self):
 
-        # Randomizer to determine between 0 (Unreliable) and 1 (Reliable)
-        isReliable = random.randint(0,1) 
-
         data = "This is a test message"
 
-        for i in range(10):
+        for i in range(30):
+            # Randomizer to determine between 0 (Unreliable) and 1 (Reliable)
+            isReliable = random.randint(0,1) 
+
             packet = self.constructPacket(data, isReliable)
-            self.send_data(self.reliable_stream, packet)
+            self.send_data(packet)
+            time.sleep(0.5)
 
         return
             

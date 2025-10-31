@@ -4,7 +4,7 @@ from GameNetAPI.GameNetServerAPI import GameNetServer
 
 
 async def main():
-    server = GameNetServer("127.0.0.1", 1234)
+    server = GameNetServer("10.0.0.1", 4444)
     await server.setup()
 
     # keep the server running until manually stopped

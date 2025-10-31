@@ -1,6 +1,7 @@
 import datetime
 import itertools
 import struct
+import pickle
 
 class Packet:
 
@@ -11,7 +12,7 @@ class Packet:
         #### Headers of packet ####
         self.id = next(Packet.id_object) # Auto increment seq no of the packet
         self.data = data
-        self.channelType = 1 if isReliable else 0
+        self.isReliable = isReliable
         self.timeStamp = datetime.datetime.now()
         pass
 
@@ -26,3 +27,11 @@ class Packet:
     
     def getTimeStamp(self): # Get the time stamp at which the packet was created
         return self.timeStamp
+    
+    def serialize(self) -> bytes:
+        """
+        Serialize packet with 4-byte length prefix for reliable streams.
+        """
+        packet_bytes = pickle.dumps(self)
+        length_prefix = struct.pack("!I", len(packet_bytes))
+        return length_prefix + packet_bytes
