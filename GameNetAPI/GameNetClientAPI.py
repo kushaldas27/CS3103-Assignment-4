@@ -2,7 +2,7 @@ import ssl
 import random
 import pickle
 import time
-from Packet import Packet
+from GameNetAPI.Packet import Packet
 import aioquic.asyncio as quic_asyncio
 import aioquic.quic.events as events
 from aioquic.asyncio.protocol import QuicConnectionProtocol
@@ -58,11 +58,6 @@ class GameNetClient:
         if self.protocol is None:
             raise RuntimeError("protocol not established; call setup() first")
 
-        #if stream_id not in [self.reliable_stream]:
-        #    raise RuntimeError("invalid stream ID")
-
-        #if stream_id is None:
-        #    raise RuntimeError("stream ID is None")
         packet_bytes = packet.serialize() if packet.isReliable else pickle.dumps(packet)
         if packet.isReliable:
             self.protocol._quic.send_stream_data(self.reliable_stream, packet_bytes, end_stream=False)
