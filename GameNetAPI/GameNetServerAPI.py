@@ -65,13 +65,13 @@ class GameNetServerProtocol(QuicConnectionProtocol):
         packet_object = pickle.loads(packet_bytes)
         return packet_object
 
-    def logPackets(self):
+    def logPackets(self, packet):
         return
 
 class GameNetServer:
     def __init__(self, recv_ip: str, recv_port: int, certfile: str = "cert.pem", keyfile: str = "key.pem"):
-        self.recv_ip = recv_ip # Initialize ip 
-        self.recv_port = recv_port # Initialize port
+        self.recv_ip = recv_ip 
+        self.recv_port = recv_port 
         self.config = QuicConfiguration(is_client=False)
         self.config.max_datagram_frame_size = 65536
         # The server must load a certificate and private key for QUIC/TLS to work.

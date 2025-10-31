@@ -2,7 +2,7 @@ import ssl
 import random
 import pickle
 import time
-from Packet import Packet
+from GameNetAPI.Packet import Packet
 import aioquic.asyncio as quic_asyncio
 import aioquic.quic.events as events
 from aioquic.asyncio.protocol import QuicConnectionProtocol
