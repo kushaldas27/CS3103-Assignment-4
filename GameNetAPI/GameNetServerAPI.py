@@ -2,8 +2,10 @@ import pickle
 import struct
 import aioquic.asyncio as quic_asyncio
 import aioquic.quic.events as events
+from GameNetAPI.Packet import Packet
 from aioquic.asyncio.protocol import QuicConnectionProtocol
 from aioquic.quic.configuration import QuicConfiguration
+from aioquic.quic.logger import QuicFileLogger
 
 
 class GameNetServerProtocol(QuicConnectionProtocol):
@@ -23,6 +25,7 @@ class GameNetServerProtocol(QuicConnectionProtocol):
             packet_bytes = buf[4:4+packet_len]
             try:
                 packet = pickle.loads(packet_bytes)
+                self.logPackets(packet)
                 print(f"Server received stream packet {packet.getPacketId()}: {packet.getData()} on stream {event.stream_id}")
             except pickle.UnpicklingError:
                 print(f"[Stream {event.stream_id}] Invalid packet")
@@ -30,7 +33,7 @@ class GameNetServerProtocol(QuicConnectionProtocol):
 
         self.stream_buffers[event.stream_id] = buf
 
-        self.logPackets()
+        
 
         if event.data == b"PING": # Retransmission 
             self._quic.send_stream_data(event.stream_id, b"PONG", end_stream=False)
@@ -42,6 +45,7 @@ class GameNetServerProtocol(QuicConnectionProtocol):
     def handleUnreliableStream(self, event: events.QuicEvent):
         try:
             packet = self.analyzePacket(event.data)
+            self.logPackets(packet)
             print(f"Server received datagram packet {packet.getPacketId()}: {packet.getData()}")
         except pickle.UnpicklingError:
             print("Dropped invalid datagram packet")
@@ -58,7 +62,13 @@ class GameNetServerProtocol(QuicConnectionProtocol):
         packet_object = pickle.loads(packet_bytes)
         return packet_object
 
-    def logPackets(self):
+    def logPackets(self, packet : Packet):
+
+        packetNo = packet.getPacketId()
+        roundTripTime = packet.getRTT()
+        channelType = packet.isReliable
+        sentTime = packet.getTimeStamp()
+
         return
 
 class GameNetServer:
@@ -67,6 +77,9 @@ class GameNetServer:
         self.recv_port = recv_port 
         self.config = QuicConfiguration(is_client=False)
         self.config.max_datagram_frame_size = 65536
+
+        quic_logger = QuicFileLogger("logs")
+        self.config.quic_logger = quic_logger
         # The server must load a certificate and private key for QUIC/TLS to work.
         try:
             self.config.load_cert_chain(certfile, keyfile)

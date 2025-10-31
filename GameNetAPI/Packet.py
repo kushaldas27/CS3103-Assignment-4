@@ -28,6 +28,10 @@ class Packet:
     def getTimeStamp(self): # Get the time stamp at which the packet was created
         return self.timeStamp
     
+    def getRTT(self): 
+        duration = datetime.datetime.now() - self.timeStamp
+        return duration
+    
     def serialize(self) -> bytes:
         """
         Serialize packet with 4-byte length prefix for reliable streams.
