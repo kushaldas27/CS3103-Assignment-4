@@ -1,5 +1,6 @@
 import pickle
 import struct
+import logging
 import aioquic.asyncio as quic_asyncio
 import aioquic.quic.events as events
 from GameNetAPI.Packet import Packet
@@ -14,6 +15,12 @@ class GameNetServerProtocol(QuicConnectionProtocol):
         # buffer per stream for partial reads
         self.stream_buffers = {}
 
+        logging.basicConfig(
+            filename="packets.log",            
+            level=logging.INFO,
+        )
+
+        self.logger = logging.getLogger("GameNetServer")
 
     def handleReliableStream(self, event: events.QuicEvent):
         
@@ -62,14 +69,17 @@ class GameNetServerProtocol(QuicConnectionProtocol):
         packet_object = pickle.loads(packet_bytes)
         return packet_object
 
-    def logPackets(self, packet : Packet):
+    def logPackets(self, packet: Packet):
+        packet_id = packet.getPacketId()
+        reliable = packet.isReliable
+        rtt_ms = packet.getRTT().total_seconds() * 1000 if packet.getRTT() else 0.0
+        sent_time = packet.getTimeStamp()
 
-        packetNo = packet.getPacketId()
-        roundTripTime = packet.getRTT()
-        channelType = packet.isReliable
-        sentTime = packet.getTimeStamp()
+            
+        self.logger.info(f"Packet ID: {packet_id}, Reliable: {reliable}, RTT: {rtt_ms:.2f} ms, Sent Time: {sent_time}")
 
-        return
+        
+
 
 class GameNetServer:
     def __init__(self, recv_ip: str, recv_port: int, certfile: str = "cert.pem", keyfile: str = "key.pem"):
@@ -80,6 +90,7 @@ class GameNetServer:
 
         quic_logger = QuicFileLogger("logs")
         self.config.quic_logger = quic_logger
+
         # The server must load a certificate and private key for QUIC/TLS to work.
         try:
             self.config.load_cert_chain(certfile, keyfile)
