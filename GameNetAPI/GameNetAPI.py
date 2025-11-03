@@ -48,13 +48,14 @@ class Packet:
         return length_prefix + packet_bytes
 
 
+# Quic Protocol for client
 class ClientGameNetProtocol(QuicConnectionProtocol):
     
     def quic_event_received(self, event: events.QuicEvent):
         if isinstance(event, events.StreamDataReceived):
             print(f"Server received on stream {event.stream_id}: {event.data}")
 
-
+# Quic Protocol for server
 class ServerGameNetProtocol(QuicConnectionProtocol):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -168,7 +169,7 @@ class GameNetAPI:
         print(f"Server: started on {recv_ip}:{recv_port}")
         return
 
-    def client_send_data(self, data, isReliable: bool):
+    def client_send_data(self, data, isReliable: int):
 
         # Construct packet
         packet = Packet(data, isReliable)
