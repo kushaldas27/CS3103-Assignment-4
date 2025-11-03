@@ -149,8 +149,8 @@ class GameNetAPI:
         self.client_context = quic_asyncio.client.connect(
             host=target_ip, port=target_port, configuration=self.client_config, create_protocol=ClientGameNetProtocol
         )
-        self.protocol = await self.client_context.__aenter__()
-        self.reliable_stream = self.protocol._quic.get_next_available_stream_id()
+        self.client_protocol = await self.client_context.__aenter__()
+        self.reliable_stream = self.client_protocol._quic.get_next_available_stream_id()
         
         print("Client connected successfully")
         return 
