@@ -3,7 +3,6 @@ import pickle
 import datetime
 import itertools
 import struct
-import logging
 import aioquic.asyncio as quic_asyncio
 import aioquic.quic.events as events
 from aioquic.asyncio.protocol import QuicConnectionProtocol
@@ -55,19 +54,13 @@ class ClientGameNetProtocol(QuicConnectionProtocol):
         if isinstance(event, events.StreamDataReceived):
             print(f"Server received on stream {event.stream_id}: {event.data}")
 
+
 # Quic Protocol for server
 class ServerGameNetProtocol(QuicConnectionProtocol):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # buffer per stream for partial reads
         self.stream_buffers = {}
-
-        logging.basicConfig(
-            filename="server.log",            
-            level=logging.INFO,
-        )
-
-        self.logger = logging.getLogger("GameNetServer")
 
     def handleReliableStream(self, event: events.QuicEvent):
         
@@ -79,7 +72,6 @@ class ServerGameNetProtocol(QuicConnectionProtocol):
             packet_bytes = buf[4:4+packet_len]
             try:
                 packet = pickle.loads(packet_bytes)
-                self.logPackets(packet)
                 print(f"Server received stream packet {packet.getPacketId()}: {packet.getData()} on stream {event.stream_id}")
             except pickle.UnpicklingError:
                 print(f"[Stream {event.stream_id}] Invalid packet")
@@ -99,7 +91,6 @@ class ServerGameNetProtocol(QuicConnectionProtocol):
     def handleUnreliableStream(self, event: events.QuicEvent):
         try:
             packet = self.analyzePacket(event.data)
-            self.logPackets(packet)
             print(f"Server received datagram packet {packet.getPacketId()}: {packet.getData()}")
         except pickle.UnpicklingError:
             print("Dropped invalid datagram packet")
@@ -172,7 +163,6 @@ class GameNetAPI:
         return
 
     def client_send_data(self, data, isReliable: int):
-
         # Construct packet
         packet = Packet(data, isReliable)
 
