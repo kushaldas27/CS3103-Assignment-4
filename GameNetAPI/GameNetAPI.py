@@ -128,18 +128,20 @@ class ServerGameNetProtocol(QuicConnectionProtocol):
 
 class GameNetAPI:
 
-    def __init__(self):
+    def __init__(self, role: str):
 
-        # Set up QUIC configuration for client
-        self.client_config = QuicConfiguration(is_client=True)
-        self.client_config.verify_mode = ssl.CERT_NONE
-        self.client_context = None
-        self.client_protocol = None
-        self.reliable_stream = None
-
-        # Set up QUIC configuration for server
-        self.server_config = QuicConfiguration(is_client=False)
-        self.server_config.max_datagram_frame_size = 65536
+        if role == "client":
+            # Set up QUIC configuration for client
+            self.client_config = QuicConfiguration(is_client=True)
+            self.client_config.verify_mode = ssl.CERT_NONE
+            self.client_context = None
+            self.client_protocol = None
+            self.reliable_stream = None
+        
+        elif role == "server":
+            # Set up QUIC configuration for server
+            self.server_config = QuicConfiguration(is_client=False)
+            self.server_config.max_datagram_frame_size = 65536
         
 
     async def client_connect(self, target_ip: str, target_port: int):
@@ -188,3 +190,4 @@ class GameNetAPI:
             self.client_protocol._quic.send_datagram_frame(packet_bytes)
             self.client_protocol.transmit()
 
+       

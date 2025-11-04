@@ -3,7 +3,7 @@ from GameNetAPI.GameNetAPI import GameNetAPI
 
 
 async def main():
-    gameNetAPI = GameNetAPI()
+    gameNetAPI = GameNetAPI("server")
 
     await gameNetAPI.server_serve("127.0.0.1", 4444)
 

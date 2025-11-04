@@ -8,17 +8,17 @@ def generateMetrics():
 
 async def main():
     
-    gameNetAPI = GameNetAPI()
+    gameNetAPI = GameNetAPI("client")
 
     await gameNetAPI.client_connect("127.0.0.1", 4444)
 
-    for i in range(10):
+    while True:
         # Randomizer to determine between reliable (1) and unreliable (0)
         isReliable = random.randint(0,1) 
 
         print("Packet isReliable:", isReliable)
         
-        data =  "Hello"
+        data =  input("Enter data to send to server: ")
         gameNetAPI.client_send_data(data.encode(), isReliable)
 
 
