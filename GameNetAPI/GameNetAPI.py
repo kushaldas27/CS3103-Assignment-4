@@ -79,8 +79,6 @@ class ServerGameNetProtocol(QuicConnectionProtocol):
 
         self.stream_buffers[event.stream_id] = buf
 
-        
-
         if event.data == b"PING": # Retransmission 
             self._quic.send_stream_data(event.stream_id, b"PONG", end_stream=False)
         else:
