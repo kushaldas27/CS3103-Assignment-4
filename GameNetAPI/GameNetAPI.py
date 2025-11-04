@@ -1,3 +1,6 @@
+# Use Claude AI to write a function that allows the server to retrieve the packets received by GameNetAPI
+# This is done by implementing a packet logger callback mechanism in the GameNetAPI class
+
 import ssl
 import pickle
 import datetime
@@ -57,10 +60,11 @@ class ClientGameNetProtocol(QuicConnectionProtocol):
 
 # Quic Protocol for server
 class ServerGameNetProtocol(QuicConnectionProtocol):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, packetLogger, **kwargs):
         super().__init__(*args, **kwargs)
         # buffer per stream for partial reads
         self.stream_buffers = {}
+        self.logger = packetLogger
 
     def handleReliableStream(self, event: events.QuicEvent):
         
@@ -72,7 +76,7 @@ class ServerGameNetProtocol(QuicConnectionProtocol):
             packet_bytes = buf[4:4+packet_len]
             try:
                 packet = pickle.loads(packet_bytes)
-                print(f"Server received stream packet {packet.getPacketId()}: {packet.getData()} on stream {event.stream_id}")
+                self.logger(packet)
             except pickle.UnpicklingError:
                 print(f"[Stream {event.stream_id}] Invalid packet")
             buf = buf[4+packet_len:]
@@ -89,7 +93,7 @@ class ServerGameNetProtocol(QuicConnectionProtocol):
     def handleUnreliableStream(self, event: events.QuicEvent):
         try:
             packet = self.analyzePacket(event.data)
-            print(f"Server received datagram packet {packet.getPacketId()}: {packet.getData()}")
+            self.logger(packet)
         except pickle.UnpicklingError:
             print("Dropped invalid datagram packet")
         
@@ -118,6 +122,7 @@ class ServerGameNetProtocol(QuicConnectionProtocol):
 class GameNetAPI:
 
     def __init__(self, role: str):
+        self.packetLogger = None
 
         if role == "client":
             # Set up QUIC configuration for client
@@ -132,6 +137,12 @@ class GameNetAPI:
             self.server_config = QuicConfiguration(is_client=False)
             self.server_config.max_datagram_frame_size = 65536
         
+
+    def setPacketLogger(self, logger):
+        self.packetLogger = logger
+    
+    def protocol_factory(self, *args, **kwargs):
+        return ServerGameNetProtocol(*args, packetLogger=self.packetLogger, **kwargs)
 
     async def client_connect(self, target_ip: str, target_port: int):
 
@@ -154,7 +165,7 @@ class GameNetAPI:
             raise RuntimeError("Server TLS cert/key not found or invalid: place cert.pem and key.pem in the project directory")
 
         await quic_asyncio.server.serve(
-            host=recv_ip, port=recv_port, configuration=self.server_config, create_protocol=ServerGameNetProtocol
+            host=recv_ip, port=recv_port, configuration=self.server_config, create_protocol=self.protocol_factory
         )
 
         print(f"Server: started on {recv_ip}:{recv_port}")
