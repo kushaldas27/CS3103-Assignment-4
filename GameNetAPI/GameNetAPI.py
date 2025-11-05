@@ -23,7 +23,6 @@ class Packet:
         self.data = data
         self.isReliable = isReliable
         self.timeStamp = datetime.datetime.now()
-        pass
 
     def getPacketId(self): # Get the seq no of the packet
         return self.id
@@ -37,7 +36,7 @@ class Packet:
     def getTimeStamp(self): # Get the time stamp at which the packet was created
         return self.timeStamp
     
-    def getRTT(self): 
+    def getLatency(self): 
         duration = datetime.datetime.now() - self.timeStamp
         return duration
     
@@ -64,7 +63,11 @@ class ServerGameNetProtocol(QuicConnectionProtocol):
         super().__init__(*args, **kwargs)
         # buffer per stream for partial reads
         self.stream_buffers = {}
-        self.logger = packetLogger
+        self.packetLogger = packetLogger
+
+        self.received_reliable = 0
+        self.received_unreliable = 0
+        self.latencies = []
 
     def handleReliableStream(self, event: events.QuicEvent):
         
@@ -76,7 +79,7 @@ class ServerGameNetProtocol(QuicConnectionProtocol):
             packet_bytes = buf[4:4+packet_len]
             try:
                 packet = pickle.loads(packet_bytes)
-                self.logger(packet)
+                self.logPacket(packet)
             except pickle.UnpicklingError:
                 print(f"[Stream {event.stream_id}] Invalid packet")
             buf = buf[4+packet_len:]
@@ -93,7 +96,7 @@ class ServerGameNetProtocol(QuicConnectionProtocol):
     def handleUnreliableStream(self, event: events.QuicEvent):
         try:
             packet = self.analyzePacket(event.data)
-            self.logger(packet)
+            self.logPacket(packet)
         except pickle.UnpicklingError:
             print("Dropped invalid datagram packet")
         
@@ -109,14 +112,58 @@ class ServerGameNetProtocol(QuicConnectionProtocol):
         packet_object = pickle.loads(packet_bytes)
         return packet_object
 
-    def logPackets(self, packet: Packet):
-        packet_id = packet.getPacketId()
-        reliable = 'RELIABLE' if packet.isReliable else 'UNRELIABLE'
-        rtt_ms = packet.getRTT().total_seconds() * 1000 if packet.getRTT() else 0.0
-        sent_time = packet.getTimeStamp()
+    def setPacketLogger(self, logger):
+        self.packetLogger = logger
 
-            
-        self.logger.info(f"Packet ID: {packet_id}, Reliable: {reliable}, RTT: {rtt_ms:.2f} ms, Sent Time: {sent_time}")
+    def logPacket(self, packet: Packet):
+        if packet.isReliable:
+            self.received_reliable += 1
+        else:
+            self.received_unreliable += 1
+
+        data = packet.getData().decode()
+        latency_ms = packet.getLatency().total_seconds() * 1000 if packet.getLatency() else 0.0
+        packet_id = packet.getPacketId()
+
+        # Check for END packet
+        if data.upper().startswith("END"):
+            # The END packet itself is reliable; adjust count
+            self.received_reliable -= 1
+
+            sent_reliable = int(data.split(" ")[1])
+            sent_unreliable = int(data.split(" ")[2])
+
+            ratio_reliable = (self.received_reliable / sent_reliable) * 100 if sent_reliable else 0
+            ratio_unreliable = (self.received_unreliable / sent_unreliable) * 100 if sent_unreliable else 0
+
+            summary = {
+                "type": "summary",
+                "received_reliable": self.received_reliable,
+                "sent_reliable": sent_reliable,
+                "ratio_reliable": ratio_reliable,
+                "received_unreliable": self.received_unreliable,
+                "sent_unreliable": sent_unreliable,
+                "ratio_unreliable": ratio_unreliable
+            }
+
+            if self.packetLogger:
+                self.packetLogger(summary)
+
+            # Reset counters if needed
+            self.received_reliable = 0
+            self.received_unreliable = 0
+
+        else:
+            info = {
+                "type": "packet",
+                "packet_id": packet_id,
+                "reliable": packet.isReliable,
+                "latency_ms": latency_ms,
+                "data": data
+            }
+
+            if self.packetLogger:
+                self.packetLogger(info)
 
 
 class GameNetAPI:
@@ -182,7 +229,11 @@ class GameNetAPI:
             raise RuntimeError("protocol not established; call client_connect() first")
 
         packet_bytes = packet.serialize() if packet.isReliable else pickle.dumps(packet)
-        if packet.isReliable:
+
+        if packet.getData().decode()[:3] == "END":
+            self.client_protocol._quic.send_stream_data(self.reliable_stream, packet_bytes, end_stream=True)
+            self.client_protocol.transmit()
+        elif packet.isReliable:
             self.client_protocol._quic.send_stream_data(self.reliable_stream, packet_bytes, end_stream=False)
             self.client_protocol.transmit()
         else:

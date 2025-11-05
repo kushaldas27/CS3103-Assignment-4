@@ -20,8 +20,8 @@ loss = float(sys.argv[3])
 # set paths
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 VENV_PYTHON = os.path.join(PROJECT_ROOT, 'venv', 'bin', 'python3')
-server = os.path.join(PROJECT_ROOT, 'gameNetServer-demo.py')
-client = os.path.join(PROJECT_ROOT, 'gameNetClient-demo.py')
+server = os.path.join(PROJECT_ROOT, 'server-demo.py')
+client = os.path.join(PROJECT_ROOT, 'client-demo.py')
 
 def simple_topology():
     net = Mininet(link=TCLink)
