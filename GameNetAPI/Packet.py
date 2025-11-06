@@ -28,7 +28,7 @@ class Packet:
     def getTimeStamp(self): # Get the time stamp at which the packet was created
         return self.timeStamp
     
-    def getRTT(self): 
+    def getLatency(self): 
         duration = datetime.datetime.now() - self.timeStamp
         return duration
     
