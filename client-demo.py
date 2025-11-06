@@ -1,6 +1,7 @@
 import asyncio
 import random
 from GameNetAPI.GameNetAPI import GameNetAPI
+import time
 
 
 def generateMetrics():
@@ -14,10 +15,14 @@ async def main():
 
     sent_reliable = 0
     sent_unreliable = 0
+    start_time = time.time()
 
     for i in range(100):
         # Randomizer to determine between reliable (1) and unreliable (0)
-        isReliable = random.randint(0,1) 
+        if i == 99:
+            isReliable = 1
+        else:
+            isReliable = random.randint(0,1) 
 
         print("Packet isReliable:", isReliable)
         
@@ -29,12 +34,16 @@ async def main():
         data =  "This is a test message " + str(i)
         gameNetAPI.client_send_data(data.encode(), isReliable)
         await asyncio.sleep(0.1)
+    
+    await asyncio.sleep(0.1)
 
+    duration = time.time() - start_time
        
 
     # final data packet
-    data = f"END {sent_reliable} {sent_unreliable}"
+    data = f"END {sent_reliable} {sent_unreliable} {duration}"
     gameNetAPI.client_send_data(data.encode(), 1)
     await asyncio.sleep(0.1)
     print("sent last packet")
+
 asyncio.run(main())

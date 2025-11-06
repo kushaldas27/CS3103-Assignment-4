@@ -1,7 +1,5 @@
 import asyncio
 from GameNetAPI.GameNetAPI import GameNetAPI
-from GameNetAPI.Packet import Packet
-
 
 async def main():
     gameNetAPI = GameNetAPI("server")
@@ -19,8 +17,12 @@ async def main():
             print(f"Packet ID: {info['packet_id']}, Reliable: {info['reliable']}, Latency: {info['latency_ms']:.2f} ms")
         elif info["type"] == "summary":
             print("=== SUMMARY ===")
-            print(f"Reliable packets: {info['received_reliable']}/{info['sent_reliable']} = {info['ratio_reliable']:.2f}%")
-            print(f"Unreliable packets: {info['received_unreliable']}/{info['sent_unreliable']} = {info['ratio_unreliable']:.2f}%")
+            print(f"Reliable Packet Delivery Ratio: {info['received_reliable']}/{info['sent_reliable']} = {info['ratio_reliable']:.2f}%")
+            print(f"Reliable Throughput: {info['reliable_throughput']:.2f} bytes/s")
+            print(f"Reliable Average Latency: {info['reliable_avg_latency']:.2f} ms")
+            print(f"Unreliable Packet Delivery Ratio: {info['received_unreliable']}/{info['sent_unreliable']} = {info['ratio_unreliable']:.2f}%")
+            print(f"Unreliable Throughput: {info['unreliable_throughput']:.2f} bytes/s")
+            print(f"Unreliable Average Latency: {info['unreliable_avg_latency']:.2f} ms")
             print("================")
 
     # Set API logger callback

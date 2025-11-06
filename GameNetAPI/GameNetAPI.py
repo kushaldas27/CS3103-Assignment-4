@@ -1,6 +1,3 @@
-# Use Claude AI to write a function that allows the server to retrieve the packets received by GameNetAPI
-# This is done by implementing a packet logger callback mechanism in the GameNetAPI class
-
 import ssl
 import pickle
 import datetime
@@ -19,7 +16,10 @@ class Packet:
     def __init__(self, data, isReliable):
 
         #### Headers of packet ####
-        self.id = next(Packet.id_object) # Auto increment seq no of the packet
+        if isReliable:
+            self.id = next(Packet.id_object) # Auto increment seq no of the packet
+        else:
+            self.id = -1
         self.data = data
         self.isReliable = isReliable
         self.timeStamp = datetime.datetime.now()
@@ -68,6 +68,10 @@ class ServerGameNetProtocol(QuicConnectionProtocol):
         self.received_reliable = 0
         self.received_unreliable = 0
         self.latencies = []
+        self.total_reliable_bytes = 0
+        self.total_unreliable_bytes = 0
+        self.total_latency_reliable = 0
+        self.total_latency_unreliable = 0
 
     def handleReliableStream(self, event: events.QuicEvent):
         
@@ -80,6 +84,7 @@ class ServerGameNetProtocol(QuicConnectionProtocol):
             try:
                 packet = pickle.loads(packet_bytes)
                 self.logPacket(packet)
+                self.total_reliable_bytes += len(packet_bytes)
             except pickle.UnpicklingError:
                 print(f"[Stream {event.stream_id}] Invalid packet")
             buf = buf[4+packet_len:]
@@ -91,12 +96,14 @@ class ServerGameNetProtocol(QuicConnectionProtocol):
         else:
             self._quic.send_stream_data(event.stream_id, b"ACK", end_stream=False)
         self.transmit()
+        
 
     
     def handleUnreliableStream(self, event: events.QuicEvent):
         try:
             packet = self.analyzePacket(event.data)
             self.logPacket(packet)
+            self.total_unreliable_bytes += len(event.data)
         except pickle.UnpicklingError:
             print("Dropped invalid datagram packet")
         
@@ -123,6 +130,10 @@ class ServerGameNetProtocol(QuicConnectionProtocol):
 
         data = packet.getData().decode()
         latency_ms = packet.getLatency().total_seconds() * 1000 if packet.getLatency() else 0.0
+        if packet.isReliable:
+            self.total_latency_reliable += latency_ms
+        elif not packet.isReliable:
+            self.total_latency_unreliable += latency_ms
         packet_id = packet.getPacketId()
 
         # Check for END packet
@@ -132,7 +143,12 @@ class ServerGameNetProtocol(QuicConnectionProtocol):
 
             sent_reliable = int(data.split(" ")[1])
             sent_unreliable = int(data.split(" ")[2])
+            duration = float(data.split(" ")[3])
 
+            reliable_throughput = self.total_reliable_bytes / duration
+            unreliable_throughput = self.total_unreliable_bytes / duration
+            reliable_avg_latency = self.total_latency_reliable / self.received_reliable
+            unreliable_avg_latency = self.total_latency_unreliable / self.received_unreliable
             ratio_reliable = (self.received_reliable / sent_reliable) * 100 if sent_reliable else 0
             ratio_unreliable = (self.received_unreliable / sent_unreliable) * 100 if sent_unreliable else 0
 
@@ -140,6 +156,10 @@ class ServerGameNetProtocol(QuicConnectionProtocol):
                 "type": "summary",
                 "received_reliable": self.received_reliable,
                 "sent_reliable": sent_reliable,
+                "reliable_throughput": reliable_throughput,
+                "unreliable_throughput": unreliable_throughput,
+                "reliable_avg_latency":  reliable_avg_latency,
+                "unreliable_avg_latency": unreliable_avg_latency,
                 "ratio_reliable": ratio_reliable,
                 "received_unreliable": self.received_unreliable,
                 "sent_unreliable": sent_unreliable,
@@ -231,7 +251,7 @@ class GameNetAPI:
         packet_bytes = packet.serialize() if packet.isReliable else pickle.dumps(packet)
 
         if packet.getData().decode()[:3] == "END":
-            self.client_protocol._quic.send_stream_data(self.reliable_stream, packet_bytes, end_stream=True)
+            self.client_protocol._quic.send_stream_data(self.reliable_stream, packet_bytes, end_stream=False)
             self.client_protocol.transmit()
         elif packet.isReliable:
             self.client_protocol._quic.send_stream_data(self.reliable_stream, packet_bytes, end_stream=False)

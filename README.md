@@ -7,9 +7,11 @@ Before you run or setup a GameNetServer, you need to run the follow ssl command 
 
 Cert and priv keys are needed since QUIC uses TLS.
 
-## Demo
+## Demo (WSL2/ Ubuntu)
+1. Run `sudo apt update && sudo apt install mininet`
 1. In the root directory, run `python3 -m venv venv`, then `source venv/bin/activate`
 1. Run `pip3 install -r requirements.txt`
 1. Run `openssl req -new -x509 -days 365 -nodes -out cert.pem -keyout key.pem`
 1. Run `sudo python3 topology.py <delay_ms> <jitter_ms> <loss_percentage>`
+
 
