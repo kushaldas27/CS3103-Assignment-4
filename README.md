@@ -13,5 +13,6 @@ Cert and priv keys are needed since QUIC uses TLS.
 1. Run `pip3 install -r requirements.txt`
 1. Run `openssl req -new -x509 -days 365 -nodes -out cert.pem -keyout key.pem`
 1. Run `sudo python3 topology.py <delay_ms> <jitter_ms> <loss_percentage>`
+1. Check `server.log` for the results
 
 
