@@ -177,7 +177,6 @@ class ServerGameNetProtocol(QuicConnectionProtocol):
             unreliable_avg_latency = self.total_latency_unreliable / self.received_unreliable
             ratio_reliable = (self.received_reliable / sent_reliable) * 100 if sent_reliable else 0
             ratio_unreliable = (self.received_unreliable / sent_unreliable) * 100 if sent_unreliable else 0
-
             summary = {
                 "type": "summary",
                 "received_reliable": self.received_reliable,
@@ -186,6 +185,8 @@ class ServerGameNetProtocol(QuicConnectionProtocol):
                 "unreliable_throughput": unreliable_throughput,
                 "reliable_avg_latency":  reliable_avg_latency,
                 "unreliable_avg_latency": unreliable_avg_latency,
+                "jitter_reliable": self.reliable_packet_jitter,
+                "jitter_unreliable": self.unreliable_packet_jitter,
                 "ratio_reliable": ratio_reliable,
                 "received_unreliable": self.received_unreliable,
                 "sent_unreliable": sent_unreliable,

@@ -20,9 +20,11 @@ async def main():
             print(f"Reliable Packet Delivery Ratio: {info['received_reliable']}/{info['sent_reliable']} = {info['ratio_reliable']:.2f}%")
             print(f"Reliable Throughput: {info['reliable_throughput']:.2f} bytes/s")
             print(f"Reliable Average Latency: {info['reliable_avg_latency']:.2f} ms")
+            print(f"Reliable Jitter: {info['jitter_reliable']:.2f} ms")
             print(f"Unreliable Packet Delivery Ratio: {info['received_unreliable']}/{info['sent_unreliable']} = {info['ratio_unreliable']:.2f}%")
             print(f"Unreliable Throughput: {info['unreliable_throughput']:.2f} bytes/s")
             print(f"Unreliable Average Latency: {info['unreliable_avg_latency']:.2f} ms")
+            print(f"Unreliable Jitter: {info['jitter_unreliable']:.2f} ms")
             print("================")
 
     # Set API logger callback

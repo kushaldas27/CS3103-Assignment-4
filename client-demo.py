@@ -43,7 +43,7 @@ async def main():
     # final data packet
     data = f"END {sent_reliable} {sent_unreliable} {duration}"
     gameNetAPI.client_send_data(data.encode(), 1)
-    await asyncio.sleep(0.1)
+    await asyncio.sleep(1)
     print("sent last packet")
 
 asyncio.run(main())
