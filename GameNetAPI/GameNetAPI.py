@@ -36,7 +36,7 @@ class Packet:
     def getTimeStamp(self): # Get the time stamp at which the packet was created
         return self.timeStamp
     
-    def getLatency(self): 
+    def getLatency(self): # Deduct time packet with received - time packet was created
         duration = datetime.datetime.now() - self.timeStamp
         return duration
     
@@ -73,6 +73,11 @@ class ServerGameNetProtocol(QuicConnectionProtocol):
         self.total_latency_reliable = 0
         self.total_latency_unreliable = 0
 
+        self.last_reliable_packet_time = 0
+        self.last_unreliable_packet_time = 0
+        self.reliable_packet_jitter = 0
+        self.unreliable_packet_jitter = 0
+
     def handleReliableStream(self, event: events.QuicEvent):
         
         buf = self.stream_buffers.get(event.stream_id, b"") + event.data
@@ -91,10 +96,8 @@ class ServerGameNetProtocol(QuicConnectionProtocol):
 
         self.stream_buffers[event.stream_id] = buf
 
-        if event.data == b"PING": # Retransmission 
-            self._quic.send_stream_data(event.stream_id, b"PONG", end_stream=False)
-        else:
-            self._quic.send_stream_data(event.stream_id, b"ACK", end_stream=False)
+        # Send ACK back for reliable packet
+        self._quic.send_stream_data(event.stream_id, b"ACK", end_stream=False)
         self.transmit()
         
 
@@ -135,6 +138,29 @@ class ServerGameNetProtocol(QuicConnectionProtocol):
         elif not packet.isReliable:
             self.total_latency_unreliable += latency_ms
         packet_id = packet.getPacketId()
+
+        if packet.isReliable:
+            if self.last_reliable_packet_time == 0:
+                self.last_reliable_packet_time = latency_ms
+     
+            else:
+                difference = abs(latency_ms - self.last_reliable_packet_time)
+
+                # Applying RFC 3550 jitter calculation
+                self.reliable_packet_jitter += (difference - self.reliable_packet_jitter) / 16
+                self.last_reliable_packet_time = latency_ms
+
+        else:
+            if self.last_unreliable_packet_time == 0:
+                self.last_unreliable_packet_time = latency_ms
+            
+            else:
+                difference = abs(latency_ms - self.last_unreliable_packet_time)
+                # Applying RFC 3550 jitter calculation
+                self.unreliable_packet_jitter += (difference - self.unreliable_packet_jitter) / 16
+                self.last_unreliable_packet_time = latency_ms
+
+
 
         # Check for END packet
         if data.upper().startswith("END"):
@@ -179,6 +205,7 @@ class ServerGameNetProtocol(QuicConnectionProtocol):
                 "packet_id": packet_id,
                 "reliable": packet.isReliable,
                 "latency_ms": latency_ms,
+                "jitter": self.reliable_packet_jitter if packet.isReliable else self.unreliable_packet_jitter,
                 "data": data
             }
 
